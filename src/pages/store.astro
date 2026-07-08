@@ -1,0 +1,148 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Store — Peg">
+  <DevBanner message='MOCKUP — &quot;Buy now&quot; simulates a payment. No real Stripe checkout happens here.' />
+  <Header />
+
+  <div class="page-body">
+    <div id="content" class="wrap"></div>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-body"></div>
+  </div>
+
+  <script is:inline>
+    const params = new URLSearchParams(location.search);
+    const slug = params.get('slug') || 'example';
+    const content = document.getElementById('content');
+    let currentStore = null;
+
+    async function load() {
+      try {
+        currentStore = await apiGetStore(slug);
+      } catch (err) {
+        currentStore = null;
+      }
+      render();
+    }
+
+    function render() {
+      const store = currentStore;
+
+      if (!store) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <h2 style="font-size:20px; margin-bottom:10px;">No store found at this link</h2>
+            <p>Nothing's been published at <strong>${slug}</strong> yet.</p>
+            <a class="btn-primary" href="/create">Create a store</a>
+          </div>`;
+        return;
+      }
+
+      const remaining = store.quantity_total - store.quantity_sold;
+      const soldOut = remaining <= 0;
+      const initials = (store.shop_name || store.product_name || 'PG')
+        .split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      const photo = (store.images && store.images[0]) || '';
+      const social = store.social_links || {};
+
+      let sectionsHtml = '';
+      if (store.description) {
+        sectionsHtml += `<div class="section"><p class="section-label">Description</p><p>${escapeHtml(store.description)}</p></div>`;
+      }
+      if (store.delivery_info) {
+        sectionsHtml += `<div class="section"><p class="section-label">Pickup & delivery</p><p>${escapeHtml(store.delivery_info)}</p></div>`;
+      }
+      if (store.about_text) {
+        sectionsHtml += `<div class="section"><p class="section-label">About</p><p>${escapeHtml(store.about_text)}</p></div>`;
+      }
+      if (social.instagram || social.website) {
+        let links = '';
+        if (social.instagram) links += `<a href="${escapeHtml(social.instagram)}" target="_blank" rel="noopener">Instagram</a>`;
+        if (social.website) links += `<a href="${escapeHtml(social.website)}" target="_blank" rel="noopener">Website</a>`;
+        sectionsHtml += `<div class="section"><p class="section-label">Links</p><div class="links">${links}</div></div>`;
+      }
+
+      content.innerHTML = `
+        <div class="tag-hole"></div>
+        <div class="tag-string"></div>
+        <div class="tag-badge">${escapeHtml(initials)}</div>
+        <div class="card">
+          <img class="photo" src="${escapeHtml(photo)}" alt="${escapeHtml(store.product_name)}">
+          ${store.shop_name ? `<p class="shop-name">${escapeHtml(store.shop_name)}</p>` : ''}
+          <h1 class="product-name">${escapeHtml(store.product_name)}</h1>
+          <div class="price-row">
+            <span class="price">${formatPrice(store.price_cents)}</span>
+            <span class="stock ${soldOut ? 'out' : (remaining <= 2 ? 'low' : '')}">${soldOut ? 'Sold out' : remaining + ' in stock'}</span>
+          </div>
+          <button class="btn-primary buy-btn" id="buy-btn" ${soldOut ? 'disabled' : ''}>
+            ${soldOut ? 'Sold out' : 'Buy now — ' + formatPrice(store.price_cents)}
+          </button>
+          ${sectionsHtml}
+        </div>
+        <p class="footer-note">ONE STORE · ONE PRODUCT · NO ACCOUNT NEEDED</p>
+      `;
+
+      const buyBtn = document.getElementById('buy-btn');
+      if (buyBtn && !soldOut) {
+        buyBtn.addEventListener('click', () => openCheckout(store));
+      }
+    }
+
+    function openCheckout(store) {
+      const overlay = document.getElementById('modal-overlay');
+      const body = document.getElementById('modal-body');
+      body.innerHTML = `
+        <h3>Confirm purchase</h3>
+        <p>Checkout isn't wired up to real Stripe payments yet, so this only simulates the flow — it doesn't charge a card or change real stock.</p>
+        <p class="amount">${formatPrice(store.price_cents)}</p>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="cancel-buy">Cancel</button>
+          <button class="btn-primary" id="confirm-buy">Pay now (simulated)</button>
+        </div>
+      `;
+      overlay.classList.remove('hidden');
+      document.getElementById('cancel-buy').addEventListener('click', closeModal);
+      document.getElementById('confirm-buy').addEventListener('click', () => confirmPurchase(store));
+    }
+
+    function confirmPurchase(store) {
+      const body = document.getElementById('modal-body');
+      body.innerHTML = `<p style="text-align:center; color:var(--muted); font-size:14px;">Processing...</p>`;
+      setTimeout(() => {
+        // Simulated only — doesn't touch the real store record. Real stock
+        // will decrement via the Stripe webhook once checkout is built.
+        currentStore = { ...store, quantity_sold: (store.quantity_sold || 0) + 1 };
+        body.innerHTML = `
+          <div class="success-tick">✓</div>
+          <h3>Order placed (simulated)</h3>
+          <p>No card was charged and the real stock count hasn't changed. This just previews what the buyer sees once checkout is live.</p>
+          <div class="modal-actions">
+            <button class="btn-primary" id="close-success" style="width:100%;">Done</button>
+          </div>
+        `;
+        document.getElementById('close-success').addEventListener('click', () => {
+          closeModal();
+          render();
+        });
+      }, 700);
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+    }
+
+    load();
+  </script>
+  <Footer />
+</BaseLayout>
+
+<style>
+  :global(body){ display:flex; flex-direction:column; min-height:100vh; }
+  .page-body{ flex:1; display:flex; justify-content:center; padding: 40px 16px 64px; }
+</style>

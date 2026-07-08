@@ -1,0 +1,212 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Manage your store — Peg">
+  <DevBanner message='MOCKUP — this page stands in for the one-time &quot;save your link&quot; screen and manage dashboard.' />
+  <Header showCreateCta={false} />
+
+  <div class="container-narrow form-page">
+    <div id="content"></div>
+  </div>
+
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div class="modal" id="modal-body"></div>
+  </div>
+
+  <script is:inline>
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token');
+    const content = document.getElementById('content');
+
+    async function render() {
+      let store;
+      try {
+        store = token ? await apiGetStoreByToken(token) : null;
+      } catch (err) {
+        store = null;
+      }
+
+      if (!store) {
+        content.innerHTML = `
+          <div class="empty-state">
+            <h2 style="font-size:20px; margin-bottom:10px;">Manage link not found</h2>
+            <p>This link is invalid, or the store has already been deleted.</p>
+            <a class="btn-primary" href="/create">Create a store</a>
+          </div>`;
+        return;
+      }
+
+      const slug = store.slug;
+      const publicUrl = `${location.origin}/store?slug=${encodeURIComponent(slug)}`;
+      const manageUrl = `${location.origin}/create?manage=${encodeURIComponent(token)}`;
+      const isDraft = store.status === 'draft';
+      const locked = store.status === 'published_locked';
+
+      let noticeHtml = '';
+      if (isDraft) {
+        noticeHtml = `
+          <div class="locked-notice">
+            This store is saved as a draft — it isn't public yet. Publishing requires a connected Stripe account, which isn't set up yet on this build, so publishing will show an error until that's ready.
+          </div>`;
+      } else if (locked) {
+        noticeHtml = `
+          <div class="locked-notice">
+            This store is on the free plan, so it's locked — the listing can't be edited after publishing. Upgrade to unlock editing for this store, or delete it below.
+          </div>`;
+      }
+
+      let primaryActionHtml = '';
+      if (isDraft) {
+        primaryActionHtml = `<button type="button" class="btn-primary" id="publish-btn">Publish store</button>`;
+      } else if (locked) {
+        primaryActionHtml = `<button type="button" class="btn-primary" id="upgrade-btn">Upgrade — unlock editing ($15)</button>`;
+      } else {
+        primaryActionHtml = `<a class="btn-secondary" href="/create?manage=${encodeURIComponent(token)}">Edit store</a>`;
+      }
+
+      content.innerHTML = `
+        <p class="eyebrow">Your store</p>
+        <h1 style="font-size:26px; margin-bottom:6px;">${escapeHtml(store.product_name)}</h1>
+        <p style="color:var(--muted); font-size:14px; margin:0 0 28px;">${escapeHtml(store.shop_name || '')}</p>
+
+        <div class="reveal-box public">
+          <p class="reveal-label">Public store link — share this</p>
+          <div class="reveal-url">${escapeHtml(publicUrl)}</div>
+          <button type="button" class="btn-secondary" id="copy-public">Copy link</button>
+        </div>
+
+        <div class="reveal-box secret">
+          <p class="reveal-label">Manage link — keep this private</p>
+          <div class="reveal-url">${escapeHtml(manageUrl)}</div>
+          <p class="reveal-warning">Anyone with this link can edit or delete your store. Save it somewhere safe — there's no account to recover it from if it's lost.</p>
+          <button type="button" class="btn-secondary" id="copy-manage" style="margin-top:10px;">Copy link</button>
+        </div>
+
+        <div class="reveal-box public">
+          <p class="reveal-label">Email me these links</p>
+          <p style="font-size:13px; color:var(--muted); margin:0 0 12px;">Optional — a backup copy somewhere other than this browser, in case you lose this page.</p>
+          <div class="email-capture-row">
+            <input type="email" id="recovery-email" placeholder="you@example.com" value="${escapeHtml(store.recovery_email || '')}">
+            <button type="button" class="btn-secondary" id="send-links-btn">Send links</button>
+          </div>
+          <p class="hint" id="send-links-status" style="margin-top:8px;"></p>
+        </div>
+
+        ${noticeHtml}
+
+        <div class="form-actions" style="margin-bottom:24px;">
+          <a class="btn-secondary" href="${publicUrl}">View live store</a>
+          ${primaryActionHtml}
+          <span style="flex:1;"></span>
+          <button type="button" class="btn-text" id="delete-btn">Delete this store</button>
+        </div>
+      `;
+
+      document.getElementById('copy-public').addEventListener('click', () => copyText(publicUrl, 'copy-public'));
+      document.getElementById('copy-manage').addEventListener('click', () => copyText(manageUrl, 'copy-manage'));
+      document.getElementById('send-links-btn').addEventListener('click', () => sendLinksByEmail());
+
+      document.getElementById('delete-btn').addEventListener('click', async () => {
+        if (confirm('Delete this store? This can\'t be undone, and both links above will stop working.')) {
+          try {
+            await apiDeleteStore(token);
+            render();
+          } catch (err) {
+            alert(err.message || 'Could not delete this store.');
+          }
+        }
+      });
+
+      const publishBtn = document.getElementById('publish-btn');
+      if (publishBtn) {
+        publishBtn.addEventListener('click', async () => {
+          publishBtn.disabled = true;
+          publishBtn.textContent = 'Publishing...';
+          try {
+            await apiPublishStore(token);
+            render();
+          } catch (err) {
+            alert(err.message || 'Could not publish this store.');
+            publishBtn.disabled = false;
+            publishBtn.textContent = 'Publish store';
+          }
+        });
+      }
+
+      const upgradeBtn = document.getElementById('upgrade-btn');
+      if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', () => openUpgradeModal());
+      }
+    }
+
+    function openUpgradeModal() {
+      const overlay = document.getElementById('modal-overlay');
+      const body = document.getElementById('modal-body');
+      overlay.classList.remove('hidden');
+      body.innerHTML = `
+        <h3>Unlock editing</h3>
+        <p>Stripe and RevenueCat aren't wired up for this purchase yet, so this unlocks editing for this store without actually charging anything. Replace with a real charge before this reaches anyone outside the team.</p>
+        <p class="amount">$15.00</p>
+        <div class="modal-actions">
+          <button class="btn-secondary" id="cancel-upgrade">Cancel</button>
+          <button class="btn-primary" id="confirm-upgrade">Unlock (no charge yet)</button>
+        </div>
+      `;
+      document.getElementById('cancel-upgrade').addEventListener('click', () => overlay.classList.add('hidden'));
+      document.getElementById('confirm-upgrade').addEventListener('click', async () => {
+        body.innerHTML = `<p style="text-align:center; color:var(--muted); font-size:14px;">Processing...</p>`;
+        try {
+          await apiUpgradeStore(token);
+          body.innerHTML = `
+            <div class="success-tick">✓</div>
+            <h3>Editing unlocked</h3>
+            <p>You can now edit this store's price, photos, and text anytime.</p>
+            <button class="btn-primary" id="close-upgrade" style="width:100%;">Done</button>
+          `;
+          document.getElementById('close-upgrade').addEventListener('click', () => {
+            overlay.classList.add('hidden');
+            render();
+          });
+        } catch (err) {
+          body.innerHTML = `<p style="color:var(--danger); font-size:14px;">${escapeHtml(err.message || 'Something went wrong.')}</p>`;
+        }
+      });
+    }
+
+    async function sendLinksByEmail() {
+      const input = document.getElementById('recovery-email');
+      const status = document.getElementById('send-links-status');
+      const email = input.value.trim();
+
+      if (!email || !email.includes('@')) {
+        status.textContent = 'Enter a valid email first.';
+        return;
+      }
+
+      status.textContent = 'This still just saves your email for now — actual email delivery (via Resend) isn\'t built yet.';
+
+      try {
+        await apiUpdateStore(token, { recovery_email: email });
+      } catch (err) {
+        status.textContent = err.message || 'Could not save that email.';
+      }
+    }
+
+    function copyText(text, btnId) {
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById(btnId);
+        const original = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = original; }, 1500);
+      }).catch(() => {
+        alert(text);
+      });
+    }
+
+    render();
+  </script>
+  <Footer />
+</BaseLayout>

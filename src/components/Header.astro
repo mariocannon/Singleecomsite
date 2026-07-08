@@ -1,0 +1,12 @@
+---
+interface Props {
+  showCreateCta?: boolean;
+}
+const { showCreateCta = true } = Astro.props;
+---
+<header class="site-header">
+  <div class="container header-row">
+    <a class="brand" href="/"><span class="brand-mark">PG</span>Peg</a>
+    {showCreateCta && <a class="nav-cta" href="/create">Create your store</a>}
+  </div>
+</header>

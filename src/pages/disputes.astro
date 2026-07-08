@@ -1,0 +1,29 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Disputes — Peg">
+  <DevBanner message="MOCKUP — placeholder text describing the intended dispute process." />
+  <Header />
+
+  <div class="container-narrow form-page legal-page">
+    <p class="eyebrow">Support</p>
+    <h1 style="font-size:28px; margin-bottom:20px;">Disputes & Refunds</h1>
+
+    <h2>Who's involved</h2>
+    <p>Every store on Peg is connected to its seller's own Stripe account (a Stripe Connect Standard account). That means payments, refunds, and chargebacks happen directly between the buyer, the seller, and Stripe — not through us. We're not in the middle of the transaction itself, only the listing page.</p>
+
+    <h2>If you're a buyer with an issue</h2>
+    <p>Start with the seller directly — most stores list a way to reach them (Instagram, a website link, or delivery/pickup details on the store page). If that doesn't resolve it, you can dispute the charge with your bank or card provider the same way you would for any other online purchase.</p>
+
+    <h2>If you're a seller</h2>
+    <p>Refunds are issued directly from your own Stripe Dashboard. Chargebacks and disputes are handled through Stripe's standard dispute process, the same as they would be for any Stripe account.</p>
+
+    <h2>Our role</h2>
+    <p>We can remove a listing if it's fraudulent or breaks our <a href="/terms">Terms of Service</a> — see <a href="/report">Report a store</a>. We don't process refunds ourselves and can't reverse a Stripe payment directly.</p>
+  </div>
+
+  <Footer />
+</BaseLayout>

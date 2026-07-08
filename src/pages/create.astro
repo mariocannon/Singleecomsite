@@ -1,0 +1,253 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Create your store — Peg">
+  <DevBanner message="MOCKUP — publishing here just saves to your browser and takes you straight to the live page." />
+  <Header showCreateCta={false} />
+
+  <div class="container-narrow form-page">
+    <div id="invalid-wrapper" style="display:none;">
+      <div class="empty-state">
+        <h2 style="font-size:20px; margin-bottom:10px;">Manage link not found</h2>
+        <p>This link is invalid, or the store has already been deleted.</p>
+        <a class="btn-primary" href="/create">Create a store</a>
+      </div>
+    </div>
+
+    <div id="locked-wrapper" style="display:none;">
+      <p class="eyebrow">This store is locked</p>
+      <h1 style="font-size:26px; margin-bottom:12px;" id="locked-product-name"></h1>
+      <div class="locked-notice">
+        Stores on the free plan are locked once published and can't be edited from here. Head back to your dashboard to upgrade and unlock editing for this store, or to delete it.
+      </div>
+      <div class="form-actions">
+        <a class="btn-secondary" id="locked-manage-link" href="#">Back to manage</a>
+      </div>
+    </div>
+
+    <div id="form-wrapper">
+    <p class="eyebrow" id="form-eyebrow">New store</p>
+    <h1 style="font-size:28px; margin-bottom:8px;" id="form-title">Add your product</h1>
+    <p style="color:var(--muted); font-size:14.5px; margin:0 0 32px;">Only product name, photo, and price are required — everything else is optional and can stay blank.</p>
+
+    <form id="store-form">
+      <fieldset>
+        <legend>Your shop</legend>
+        <div class="field">
+          <label for="shopName">Shop or your name</label>
+          <input type="text" id="shopName" placeholder="e.g. Fen & Clay" />
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>The product</legend>
+        <div class="field">
+          <label for="productName">Product name *</label>
+          <input type="text" id="productName" required placeholder="e.g. Speckled Stoneware Mug" />
+        </div>
+        <div class="field">
+          <label for="photo">Photo URL *</label>
+          <input type="url" id="photo" required placeholder="https://..." />
+          <p class="hint">Paste a link to an image for now — file upload comes later.</p>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="price">Price (NZD) *</label>
+            <input type="number" id="price" required min="0" step="0.01" placeholder="38.00" />
+          </div>
+          <div class="field">
+            <label for="quantity">Quantity available</label>
+            <input type="number" id="quantity" min="1" step="1" value="1" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="description">Description</label>
+          <textarea id="description" placeholder="What is it, what's it made of, why should someone want it?"></textarea>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Optional details</legend>
+        <div class="field">
+          <label for="delivery">Delivery or pickup info</label>
+          <textarea id="delivery" placeholder="e.g. Ships within NZ in 2-4 days, $6 flat rate. Pickup available."></textarea>
+        </div>
+        <div class="field">
+          <label for="about">About the store or person</label>
+          <textarea id="about" placeholder="A line or two about who's behind this."></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="instagram">Instagram link</label>
+            <input type="text" id="instagram" placeholder="https://instagram.com/..." />
+          </div>
+          <div class="field">
+            <label for="website">Website link</label>
+            <input type="text" id="website" placeholder="https://..." />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Your link</legend>
+        <div class="field">
+          <label for="slug">Store address</label>
+          <input type="text" id="slug" placeholder="auto-generated from product name" />
+          <p class="hint" id="slug-preview">yourshop.peg.store/<strong id="slug-preview-value">product-name</strong></p>
+        </div>
+      </fieldset>
+
+      <div class="form-actions">
+        <button type="button" class="btn-secondary" id="load-example">Load example</button>
+        <span style="flex:1;"></span>
+        <button type="submit" class="btn-primary" id="submit-btn">Save & continue</button>
+      </div>
+      <p class="hint" style="margin-top:14px;" id="lock-warning">You'll connect Stripe and publish from your dashboard once these details are saved.</p>
+    </form>
+    </div>
+  </div>
+
+  <script is:inline>
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const manageToken = params.get('manage');
+
+      const formWrapper = document.getElementById('form-wrapper');
+      const lockedWrapper = document.getElementById('locked-wrapper');
+      const invalidWrapper = document.getElementById('invalid-wrapper');
+
+      let existing = null;
+
+      if (manageToken) {
+        try {
+          existing = await apiGetStoreByToken(manageToken);
+        } catch (err) {
+          formWrapper.style.display = 'none';
+          invalidWrapper.style.display = 'block';
+          return;
+        }
+      }
+
+      if (existing && existing.status === 'published_locked') {
+        formWrapper.style.display = 'none';
+        lockedWrapper.style.display = 'block';
+        document.getElementById('locked-product-name').textContent = existing.product_name;
+        document.getElementById('locked-manage-link').href = '/create?manage=' + encodeURIComponent(manageToken);
+        return;
+      }
+
+      if (existing) {
+        document.getElementById('form-eyebrow').textContent = 'Editing store';
+        document.getElementById('form-title').textContent = 'Edit your product';
+        document.getElementById('submit-btn').textContent = 'Save changes';
+        document.getElementById('lock-warning').textContent = existing.status === 'draft'
+          ? 'Still a draft — nothing is public until you publish from your dashboard.'
+          : 'This store is unlocked, so you can save changes as many times as you like.';
+        document.getElementById('shopName').value = existing.shop_name || '';
+        document.getElementById('productName').value = existing.product_name || '';
+        document.getElementById('photo').value = (existing.images && existing.images[0]) || '';
+        document.getElementById('price').value = ((existing.price_cents || 0) / 100).toFixed(2);
+        document.getElementById('quantity').value = existing.quantity_total || 1;
+        document.getElementById('description').value = existing.description || '';
+        document.getElementById('delivery').value = existing.delivery_info || '';
+        document.getElementById('about').value = existing.about_text || '';
+        document.getElementById('instagram').value = (existing.social_links && existing.social_links.instagram) || '';
+        document.getElementById('website').value = (existing.social_links && existing.social_links.website) || '';
+        document.getElementById('slug').value = existing.slug;
+        document.getElementById('slug').disabled = true;
+      }
+
+      const productNameInput = document.getElementById('productName');
+      const slugInput = document.getElementById('slug');
+      const slugPreviewValue = document.getElementById('slug-preview-value');
+
+      function refreshSlugPreview() {
+        const manual = slugInput.value.trim();
+        const base = manual || productNameInput.value || 'product-name';
+        slugPreviewValue.textContent = slugify(base) || 'product-name';
+      }
+      productNameInput.addEventListener('input', refreshSlugPreview);
+      slugInput.addEventListener('input', refreshSlugPreview);
+      refreshSlugPreview();
+
+      document.getElementById('load-example').addEventListener('click', () => {
+        document.getElementById('shopName').value = 'Fen & Clay';
+        document.getElementById('productName').value = 'Speckled Stoneware Mug';
+        document.getElementById('photo').value = 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800&q=80';
+        document.getElementById('price').value = '38.00';
+        document.getElementById('quantity').value = '4';
+        document.getElementById('description').value = 'Wheel-thrown stoneware, glazed in a warm speckled white with a raw clay footring. Holds 350ml. Each one comes out of the kiln slightly different.';
+        document.getElementById('delivery').value = 'Ships within NZ in 2–4 business days, $6 flat rate. Local pickup available in Ōrewa by arrangement.';
+        document.getElementById('about').value = 'Fen & Clay is a one-person studio working out of a converted garage on the Hibiscus Coast.';
+        document.getElementById('instagram').value = '';
+        document.getElementById('website').value = '';
+        refreshSlugPreview();
+      });
+
+      document.getElementById('store-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const productName = productNameInput.value.trim();
+        const photo = document.getElementById('photo').value.trim();
+        const priceCents = Math.round(parseFloat(document.getElementById('price').value) * 100);
+
+        if (!productName || !photo || isNaN(priceCents)) {
+          alert('Product name, photo, and price are required.');
+          return;
+        }
+
+        const submitBtn = document.getElementById('submit-btn');
+        const originalLabel = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Saving...';
+
+        const shopName = document.getElementById('shopName').value.trim();
+        const quantityTotal = parseInt(document.getElementById('quantity').value, 10) || 1;
+        const description = document.getElementById('description').value.trim();
+        const delivery = document.getElementById('delivery').value.trim();
+        const about = document.getElementById('about').value.trim();
+        const instagram = document.getElementById('instagram').value.trim();
+        const website = document.getElementById('website').value.trim();
+
+        try {
+          if (existing) {
+            await apiUpdateStore(manageToken, {
+              shop_name: shopName,
+              product_name: productName,
+              images: [photo],
+              price_cents: priceCents,
+              quantity_total: quantityTotal,
+              description,
+              delivery_info: delivery,
+              about_text: about,
+              social_links: { instagram, website },
+            });
+            location.href = '/published?token=' + encodeURIComponent(manageToken);
+          } else {
+            const result = await apiCreateStore({
+              shopName,
+              productName,
+              images: [photo],
+              priceCents,
+              quantityTotal,
+              description,
+              delivery,
+              about,
+              socialLinks: { instagram, website },
+              slug: slugInput.value.trim() || productName,
+            });
+            location.href = '/published?token=' + encodeURIComponent(result.manageToken);
+          }
+        } catch (err) {
+          alert(err.message || 'Something went wrong saving this store.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalLabel;
+        }
+      });
+    })();
+  </script>
+  <Footer />
+</BaseLayout>

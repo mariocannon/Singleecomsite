@@ -1,0 +1,26 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Report a store — Peg">
+  <DevBanner message="MOCKUP — this is a manual mailto link. No automated moderation exists yet." />
+  <Header />
+
+  <div class="container-narrow form-page legal-page">
+    <p class="eyebrow">Support</p>
+    <h1 style="font-size:28px; margin-bottom:14px;">Report a store</h1>
+    <p style="margin-bottom:24px;">If a store looks fraudulent, sells something it shouldn't, or breaks our <a href="/terms">Terms of Service</a>, let us know. Include the store's link if you can — it helps us find it quickly.</p>
+
+    <p>
+      <a class="btn-primary" href="mailto:report@peg.store?subject=Reporting%20a%20store">Email us about a store</a>
+    </p>
+
+    <div class="legal-page-note" style="margin-top:28px;">
+      At this stage, reports are reviewed manually — there's no automated moderation queue yet. If you don't hear back right away, it's still been received.
+    </div>
+  </div>
+
+  <Footer />
+</BaseLayout>

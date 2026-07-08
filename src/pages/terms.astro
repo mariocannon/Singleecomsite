@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Terms of service — Peg">
+  <DevBanner message="MOCKUP — placeholder legal text, not reviewed by a lawyer. Replace before launch." />
+  <Header />
+
+  <div class="container-narrow form-page legal-page">
+    <p class="eyebrow">Legal</p>
+    <h1 style="font-size:28px; margin-bottom:20px;">Terms of Service</h1>
+
+    <div class="legal-page-note">
+      This is placeholder text for a working mockup, not a real terms of service. It needs to be reviewed by a lawyer before launch.
+    </div>
+
+    <h2>Using Peg</h2>
+    <p>Peg lets you publish a page for one product and take payment for it. Free-plan stores are locked once published; upgrading unlocks editing for that store.</p>
+
+    <h2>Your store is yours</h2>
+    <p>You're responsible for what you list — that it's accurately described, legal to sell, and yours to sell. We don't review listings before they go live.</p>
+
+    <h2>Fees</h2>
+    <p>We take a percentage of each sale as a platform fee. The current rate is shown on the homepage. There's no fee for creating or publishing a store — only on completed sales.</p>
+
+    <h2>Payments and Stripe Connect</h2>
+    <p>Payments run through Stripe Connect Standard accounts. You have your own direct relationship with Stripe, separate from us — refunds, chargebacks, and disputes are between you and Stripe. See our <a href="/disputes">Disputes</a> page for more detail.</p>
+
+    <h2>Prohibited items</h2>
+    <p>You can't list anything illegal, counterfeit, or restricted under Stripe's own terms. We can take down listings that break this without notice.</p>
+
+    <h2>Changes</h2>
+    <p>We may update these terms from time to time. Continued use of Peg after a change means you accept the update.</p>
+
+    <h2>Contact</h2>
+    <p>Questions can go to <a href="mailto:hello@peg.store">hello@peg.store</a> (placeholder address).</p>
+  </div>
+
+  <Footer />
+</BaseLayout>
