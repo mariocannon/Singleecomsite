@@ -5,15 +5,11 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
 <BaseLayout title="Store — Peg">
-  <DevBanner message='MOCKUP — &quot;Buy now&quot; simulates a payment. No real Stripe checkout happens here.' />
+  <DevBanner message='"Buy now" opens a real Stripe test-mode checkout on the seller\'s connected account.' />
   <Header />
 
   <div class="page-body">
     <div id="content" class="wrap"></div>
-  </div>
-
-  <div id="modal-overlay" class="modal-overlay hidden">
-    <div class="modal" id="modal-body"></div>
   </div>
 
   <script is:inline>
@@ -44,6 +40,14 @@ import Footer from '../components/Footer.astro';
         return;
       }
 
+      const purchaseStatus = params.get('purchase');
+      let purchaseNoticeHtml = '';
+      if (purchaseStatus === 'success') {
+        purchaseNoticeHtml = `<div class="locked-notice">Payment received — thanks for your order! The seller will be in touch about delivery or pickup.</div>`;
+      } else if (purchaseStatus === 'cancelled') {
+        purchaseNoticeHtml = `<div class="locked-notice">Checkout was cancelled — no charge was made.</div>`;
+      }
+
       const remaining = store.quantity_total - store.quantity_sold;
       const soldOut = remaining <= 0;
       const initials = (store.shop_name || store.product_name || 'PG')
@@ -69,6 +73,7 @@ import Footer from '../components/Footer.astro';
       }
 
       content.innerHTML = `
+        ${purchaseNoticeHtml}
         <div class="tag-hole"></div>
         <div class="tag-string"></div>
         <div class="tag-badge">${escapeHtml(initials)}</div>
@@ -90,51 +95,23 @@ import Footer from '../components/Footer.astro';
 
       const buyBtn = document.getElementById('buy-btn');
       if (buyBtn && !soldOut) {
-        buyBtn.addEventListener('click', () => openCheckout(store));
+        buyBtn.addEventListener('click', () => startCheckout(store));
       }
     }
 
-    function openCheckout(store) {
-      const overlay = document.getElementById('modal-overlay');
-      const body = document.getElementById('modal-body');
-      body.innerHTML = `
-        <h3>Confirm purchase</h3>
-        <p>Checkout isn't wired up to real Stripe payments yet, so this only simulates the flow — it doesn't charge a card or change real stock.</p>
-        <p class="amount">${formatPrice(store.price_cents)}</p>
-        <div class="modal-actions">
-          <button class="btn-secondary" id="cancel-buy">Cancel</button>
-          <button class="btn-primary" id="confirm-buy">Pay now (simulated)</button>
-        </div>
-      `;
-      overlay.classList.remove('hidden');
-      document.getElementById('cancel-buy').addEventListener('click', closeModal);
-      document.getElementById('confirm-buy').addEventListener('click', () => confirmPurchase(store));
-    }
-
-    function confirmPurchase(store) {
-      const body = document.getElementById('modal-body');
-      body.innerHTML = `<p style="text-align:center; color:var(--muted); font-size:14px;">Processing...</p>`;
-      setTimeout(() => {
-        // Simulated only — doesn't touch the real store record. Real stock
-        // will decrement via the Stripe webhook once checkout is built.
-        currentStore = { ...store, quantity_sold: (store.quantity_sold || 0) + 1 };
-        body.innerHTML = `
-          <div class="success-tick">✓</div>
-          <h3>Order placed (simulated)</h3>
-          <p>No card was charged and the real stock count hasn't changed. This just previews what the buyer sees once checkout is live.</p>
-          <div class="modal-actions">
-            <button class="btn-primary" id="close-success" style="width:100%;">Done</button>
-          </div>
-        `;
-        document.getElementById('close-success').addEventListener('click', () => {
-          closeModal();
-          render();
-        });
-      }, 700);
-    }
-
-    function closeModal() {
-      document.getElementById('modal-overlay').classList.add('hidden');
+    async function startCheckout(store) {
+      const buyBtn = document.getElementById('buy-btn');
+      const originalLabel = buyBtn.textContent;
+      buyBtn.disabled = true;
+      buyBtn.textContent = 'Redirecting to checkout...';
+      try {
+        const { url } = await apiCreateCheckoutSession(store.slug);
+        location.href = url;
+      } catch (err) {
+        alert(err.message || 'Could not start checkout.');
+        buyBtn.disabled = false;
+        buyBtn.textContent = originalLabel;
+      }
     }
 
     load();

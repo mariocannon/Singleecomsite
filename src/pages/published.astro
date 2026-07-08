@@ -5,7 +5,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
 <BaseLayout title="Manage your store — Peg">
-  <DevBanner message='MOCKUP — this page stands in for the one-time &quot;save your link&quot; screen and manage dashboard.' />
+  <DevBanner message='Publishing and Stripe Connect are live and real. Checkout on the public store page and the $15 upgrade charge are still simulated.' />
   <Header showCreateCta={false} />
 
   <div class="container-narrow form-page">
@@ -45,23 +45,47 @@ import Footer from '../components/Footer.astro';
       const isDraft = store.status === 'draft';
       const locked = store.status === 'published_locked';
 
+      // Stripe's account status is the source of truth for whether a store
+      // can accept payments — re-check live whenever there's a connected
+      // account that isn't fully verified yet (e.g. the seller just got
+      // back from Stripe onboarding). See account-link's GET handler.
+      let chargesEnabled = store.stripe_charges_enabled;
+      let stripeCheckError = '';
+      if (isDraft && store.stripe_account_id && !chargesEnabled) {
+        try {
+          const status = await apiGetAccountStatus(token);
+          chargesEnabled = status.charges_enabled;
+        } catch (err) {
+          stripeCheckError = 'Could not check your Stripe status just now — try refreshing.';
+        }
+      }
+
       let noticeHtml = '';
-      if (isDraft) {
+      let primaryActionHtml = '';
+
+      if (isDraft && !store.stripe_account_id) {
         noticeHtml = `
           <div class="locked-notice">
-            This store is saved as a draft — it isn't public yet. Publishing requires a connected Stripe account, which isn't set up yet on this build, so publishing will show an error until that's ready.
+            This store is saved as a draft — it isn't public yet. Connect Stripe to start accepting payments, then publish.
           </div>`;
+        primaryActionHtml = `<button type="button" class="btn-primary" id="connect-stripe-btn">Connect Stripe</button>`;
+      } else if (isDraft && !chargesEnabled) {
+        noticeHtml = `
+          <div class="locked-notice">
+            Stripe account created — finish verification with Stripe to publish. ${escapeHtml(stripeCheckError)}
+          </div>`;
+        primaryActionHtml = `<button type="button" class="btn-primary" id="connect-stripe-btn">Finish Stripe setup</button>`;
+      } else if (isDraft) {
+        noticeHtml = `
+          <div class="locked-notice">
+            Stripe is connected and ready. This store is still a draft — publish when you're ready to go live.
+          </div>`;
+        primaryActionHtml = `<button type="button" class="btn-primary" id="publish-btn">Publish store</button>`;
       } else if (locked) {
         noticeHtml = `
           <div class="locked-notice">
             This store is on the free plan, so it's locked — the listing can't be edited after publishing. Upgrade to unlock editing for this store, or delete it below.
           </div>`;
-      }
-
-      let primaryActionHtml = '';
-      if (isDraft) {
-        primaryActionHtml = `<button type="button" class="btn-primary" id="publish-btn">Publish store</button>`;
-      } else if (locked) {
         primaryActionHtml = `<button type="button" class="btn-primary" id="upgrade-btn">Upgrade — unlock editing ($15)</button>`;
       } else {
         primaryActionHtml = `<a class="btn-secondary" href="/create?manage=${encodeURIComponent(token)}">Edit store</a>`;
@@ -139,6 +163,26 @@ import Footer from '../components/Footer.astro';
       const upgradeBtn = document.getElementById('upgrade-btn');
       if (upgradeBtn) {
         upgradeBtn.addEventListener('click', () => openUpgradeModal());
+      }
+
+      const connectBtn = document.getElementById('connect-stripe-btn');
+      if (connectBtn) {
+        connectBtn.addEventListener('click', async () => {
+          const originalLabel = connectBtn.textContent;
+          connectBtn.disabled = true;
+          connectBtn.textContent = 'Redirecting to Stripe...';
+          try {
+            if (!store.stripe_account_id) {
+              await apiConnectAccount(token);
+            }
+            const { url } = await apiCreateAccountLink(token);
+            location.href = url;
+          } catch (err) {
+            alert(err.message || 'Could not start Stripe connection.');
+            connectBtn.disabled = false;
+            connectBtn.textContent = originalLabel;
+          }
+        });
       }
     }
 

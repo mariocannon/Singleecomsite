@@ -74,6 +74,26 @@ async function apiUpgradeStore(manageToken) {
   return callFunction('upgrade-store', { method: 'POST', body: { manageToken } });
 }
 
+// Note: connect-account and account-link expect snake_case `manage_token`
+// (unlike the other functions above, which use camelCase `manageToken`) —
+// that's a real inconsistency between these edge functions, not a typo here.
+
+async function apiConnectAccount(manageToken) {
+  return callFunction('connect-account', { method: 'POST', body: { manage_token: manageToken } });
+}
+
+async function apiCreateAccountLink(manageToken) {
+  return callFunction('account-link', { method: 'POST', body: { manage_token: manageToken } });
+}
+
+async function apiGetAccountStatus(manageToken) {
+  return callFunction('account-link', { method: 'GET', query: { manage_token: manageToken } });
+}
+
+async function apiCreateCheckoutSession(slug) {
+  return callFunction('create-checkout-session', { method: 'POST', body: { slug } });
+}
+
 // --- Small pure helpers (no backend involved) ---
 
 function slugify(str) {
