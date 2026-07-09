@@ -63,18 +63,12 @@ import Footer from '../components/Footer.astro';
       let noticeHtml = '';
       let primaryActionHtml = '';
 
-      if (isDraft && !store.stripe_account_id) {
+      if (isDraft && !chargesEnabled) {
         noticeHtml = `
           <div class="locked-notice">
-            This store is saved as a draft — it isn't public yet. Connect Stripe to start accepting payments, then publish.
+            This store is saved as a draft — it isn't public yet. ${store.stripe_account_id ? 'Finish connecting Stripe' : 'Connect Stripe'} on the edit page before you can publish. ${escapeHtml(stripeCheckError)}
           </div>`;
-        primaryActionHtml = `<button type="button" class="btn-primary" id="connect-stripe-btn">Connect Stripe</button>`;
-      } else if (isDraft && !chargesEnabled) {
-        noticeHtml = `
-          <div class="locked-notice">
-            Stripe account created — finish verification with Stripe to publish. ${escapeHtml(stripeCheckError)}
-          </div>`;
-        primaryActionHtml = `<button type="button" class="btn-primary" id="connect-stripe-btn">Finish Stripe setup</button>`;
+        primaryActionHtml = `<a class="btn-primary" href="/create?manage=${encodeURIComponent(token)}">${store.stripe_account_id ? 'Finish Stripe setup' : 'Connect Stripe'}</a>`;
       } else if (isDraft) {
         noticeHtml = `
           <div class="locked-notice">
@@ -163,26 +157,6 @@ import Footer from '../components/Footer.astro';
       const upgradeBtn = document.getElementById('upgrade-btn');
       if (upgradeBtn) {
         upgradeBtn.addEventListener('click', () => openUpgradeModal());
-      }
-
-      const connectBtn = document.getElementById('connect-stripe-btn');
-      if (connectBtn) {
-        connectBtn.addEventListener('click', async () => {
-          const originalLabel = connectBtn.textContent;
-          connectBtn.disabled = true;
-          connectBtn.textContent = 'Redirecting to Stripe...';
-          try {
-            if (!store.stripe_account_id) {
-              await apiConnectAccount(token);
-            }
-            const { url } = await apiCreateAccountLink(token);
-            location.href = url;
-          } catch (err) {
-            alert(err.message || 'Could not start Stripe connection.');
-            connectBtn.disabled = false;
-            connectBtn.textContent = originalLabel;
-          }
-        });
       }
     }
 

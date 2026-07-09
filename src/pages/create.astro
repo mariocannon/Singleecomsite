@@ -5,7 +5,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
 <BaseLayout title="Create your store — Peg">
-  <DevBanner message="Saving here writes to the real backend. You'll connect Stripe and publish from your dashboard on the next screen." />
+  <DevBanner message="Saving here writes to the real backend. You'll connect Stripe right here, then publish from your dashboard." />
   <Header showCreateCta={false} />
 
   <div class="container-narrow form-page">
@@ -100,12 +100,17 @@ import Footer from '../components/Footer.astro';
         </div>
       </fieldset>
 
+      <fieldset id="payments-fieldset" style="display:none;">
+        <legend>Payments</legend>
+        <div id="payments-content"></div>
+      </fieldset>
+
       <div class="form-actions">
         <button type="button" class="btn-secondary" id="load-example">Load example</button>
         <span style="flex:1;"></span>
         <button type="submit" class="btn-primary" id="submit-btn">Save & continue</button>
       </div>
-      <p class="hint" style="margin-top:14px;" id="lock-warning">You'll connect Stripe and publish from your dashboard once these details are saved.</p>
+      <p class="hint" style="margin-top:14px;" id="lock-warning">After saving, you'll connect Stripe right here, then publish from your dashboard.</p>
     </form>
     </div>
   </div>
@@ -144,7 +149,7 @@ import Footer from '../components/Footer.astro';
         document.getElementById('form-title').textContent = 'Edit your product';
         document.getElementById('submit-btn').textContent = 'Save changes';
         document.getElementById('lock-warning').textContent = existing.status === 'draft'
-          ? 'Still a draft — nothing is public until you publish from your dashboard.'
+          ? 'Still a draft — connect Stripe below, then publish from your dashboard.'
           : 'This store is unlocked, so you can save changes as many times as you like.';
         document.getElementById('shopName').value = existing.shop_name || '';
         document.getElementById('productName').value = existing.product_name || '';
@@ -163,6 +168,67 @@ import Footer from '../components/Footer.astro';
       const productNameInput = document.getElementById('productName');
       const slugInput = document.getElementById('slug');
       const slugPreviewValue = document.getElementById('slug-preview-value');
+
+      const paymentsFieldset = document.getElementById('payments-fieldset');
+      const paymentsContent = document.getElementById('payments-content');
+
+      async function renderPayments() {
+        if (!existing || existing.status !== 'draft') {
+          paymentsFieldset.style.display = 'none';
+          return;
+        }
+        paymentsFieldset.style.display = 'block';
+
+        // Stripe's account status is the source of truth for whether this
+        // store can accept payments — re-check live whenever there's a
+        // connected account that isn't fully verified yet (e.g. the seller
+        // just got back from Stripe onboarding). See account-link's GET handler.
+        let chargesEnabled = existing.stripe_charges_enabled;
+        let checkError = '';
+        if (existing.stripe_account_id && !chargesEnabled) {
+          try {
+            const status = await apiGetAccountStatus(manageToken);
+            chargesEnabled = existing.stripe_charges_enabled = status.charges_enabled;
+          } catch (err) {
+            checkError = 'Could not check your Stripe status just now — try refreshing.';
+          }
+        }
+
+        if (!existing.stripe_account_id) {
+          paymentsContent.innerHTML = `
+            <p class="hint">Connect a Stripe account so you can accept payments for this store, then publish from your dashboard.</p>
+            <button type="button" class="btn-secondary" id="connect-stripe-btn">Connect Stripe</button>`;
+        } else if (!chargesEnabled) {
+          paymentsContent.innerHTML = `
+            <p class="hint">Stripe account created — finish verification with Stripe to publish. ${checkError}</p>
+            <button type="button" class="btn-secondary" id="connect-stripe-btn">Finish Stripe setup</button>`;
+        } else {
+          paymentsContent.innerHTML = `
+            <p class="hint">Stripe is connected and ready ✓</p>
+            <a class="btn-secondary" href="/published?token=${encodeURIComponent(manageToken)}">Continue to dashboard</a>`;
+        }
+
+        const connectBtn = document.getElementById('connect-stripe-btn');
+        if (connectBtn) {
+          connectBtn.addEventListener('click', async () => {
+            const originalLabel = connectBtn.textContent;
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Redirecting to Stripe...';
+            try {
+              if (!existing.stripe_account_id) {
+                await apiConnectAccount(manageToken);
+              }
+              const { url } = await apiCreateAccountLink(manageToken);
+              location.href = url;
+            } catch (err) {
+              alert(err.message || 'Could not start Stripe connection.');
+              connectBtn.disabled = false;
+              connectBtn.textContent = originalLabel;
+            }
+          });
+        }
+      }
+      renderPayments();
 
       function refreshSlugPreview() {
         const manual = slugInput.value.trim();
@@ -239,7 +305,7 @@ import Footer from '../components/Footer.astro';
               socialLinks: { instagram, website },
               slug: slugInput.value.trim() || productName,
             });
-            location.href = '/published?token=' + encodeURIComponent(result.manageToken);
+            location.href = '/create?manage=' + encodeURIComponent(result.manageToken);
           }
         } catch (err) {
           alert(err.message || 'Something went wrong saving this store.');
