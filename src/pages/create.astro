@@ -215,7 +215,30 @@ import Footer from '../components/Footer.astro';
         });
         manageToken = result.manageToken;
         history.replaceState(null, '', '/create?manage=' + encodeURIComponent(manageToken));
-        existing = await apiGetStoreByToken(manageToken);
+
+        // No need to re-fetch the store here — create-store only returns
+        // { slug, manageToken }, but we already know exactly what row it
+        // just inserted (we sent the values, and a brand-new store is
+        // always draft/free/unconnected). Building it locally skips a
+        // whole extra round trip on the Connect Stripe path.
+        existing = {
+          slug: result.slug,
+          manage_token: manageToken,
+          status: 'draft',
+          tier: 'free',
+          shop_name: v.shopName || null,
+          product_name: v.productName,
+          images: [v.photo],
+          price_cents: v.priceCents,
+          quantity_total: v.quantityTotal,
+          description: v.description || null,
+          delivery_info: v.delivery || null,
+          about_text: v.about || null,
+          social_links: { instagram: v.instagram, website: v.website },
+          stripe_account_id: null,
+          stripe_charges_enabled: false,
+          recovery_email: null,
+        };
         applyExistingToForm();
         return true;
       }
@@ -272,11 +295,8 @@ import Footer from '../components/Footer.astro';
                   return;
                 }
               }
-              connectBtn.textContent = 'Redirecting to Stripe...';
-              if (!existing.stripe_account_id) {
-                await apiConnectAccount(manageToken);
-              }
-              const { url } = await apiCreateAccountLink(manageToken);
+              connectBtn.textContent = 'Setting up Stripe (this can take several seconds)...';
+              const { url } = await apiConnectAccount(manageToken);
               location.href = url;
             } catch (err) {
               alert(err.message || 'Could not start Stripe connection.');
