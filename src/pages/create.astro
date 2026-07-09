@@ -118,7 +118,7 @@ import Footer from '../components/Footer.astro';
   <script is:inline>
     (async () => {
       const params = new URLSearchParams(location.search);
-      const manageToken = params.get('manage');
+      let manageToken = params.get('manage');
 
       const formWrapper = document.getElementById('form-wrapper');
       const lockedWrapper = document.getElementById('locked-wrapper');
@@ -144,7 +144,7 @@ import Footer from '../components/Footer.astro';
         return;
       }
 
-      if (existing) {
+      function applyExistingToForm() {
         document.getElementById('form-eyebrow').textContent = 'Editing store';
         document.getElementById('form-title').textContent = 'Edit your product';
         document.getElementById('submit-btn').textContent = 'Save changes';
@@ -163,6 +163,10 @@ import Footer from '../components/Footer.astro';
         document.getElementById('website').value = (existing.social_links && existing.social_links.website) || '';
         document.getElementById('slug').value = existing.slug;
         document.getElementById('slug').disabled = true;
+      }
+
+      if (existing) {
+        applyExistingToForm();
       }
 
       const productNameInput = document.getElementById('productName');
@@ -305,7 +309,17 @@ import Footer from '../components/Footer.astro';
               socialLinks: { instagram, website },
               slug: slugInput.value.trim() || productName,
             });
-            location.href = '/create?manage=' + encodeURIComponent(result.manageToken);
+
+            // Stay on this page instead of redirecting — just switch into
+            // edit mode in place so Connect Stripe appears at the bottom
+            // without a full page load.
+            manageToken = result.manageToken;
+            history.replaceState(null, '', '/create?manage=' + encodeURIComponent(manageToken));
+            existing = await apiGetStoreByToken(manageToken);
+            applyExistingToForm();
+            submitBtn.disabled = false;
+            await renderPayments();
+            document.getElementById('payments-fieldset').scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         } catch (err) {
           alert(err.message || 'Something went wrong saving this store.');
