@@ -100,7 +100,7 @@ import Footer from '../components/Footer.astro';
         </div>
       </fieldset>
 
-      <fieldset id="payments-fieldset" style="display:none;">
+      <fieldset id="payments-fieldset">
         <legend>Payments</legend>
         <div id="payments-content"></div>
       </fieldset>
@@ -172,24 +172,67 @@ import Footer from '../components/Footer.astro';
       const productNameInput = document.getElementById('productName');
       const slugInput = document.getElementById('slug');
       const slugPreviewValue = document.getElementById('slug-preview-value');
+      const submitBtn = document.getElementById('submit-btn');
 
       const paymentsFieldset = document.getElementById('payments-fieldset');
       const paymentsContent = document.getElementById('payments-content');
 
+      function collectFieldValues() {
+        return {
+          shopName: document.getElementById('shopName').value.trim(),
+          productName: productNameInput.value.trim(),
+          photo: document.getElementById('photo').value.trim(),
+          priceCents: Math.round(parseFloat(document.getElementById('price').value) * 100),
+          quantityTotal: parseInt(document.getElementById('quantity').value, 10) || 1,
+          description: document.getElementById('description').value.trim(),
+          delivery: document.getElementById('delivery').value.trim(),
+          about: document.getElementById('about').value.trim(),
+          instagram: document.getElementById('instagram').value.trim(),
+          website: document.getElementById('website').value.trim(),
+        };
+      }
+
+      // Used both by the form submit handler and by the Connect Stripe
+      // button, since that button is visible (and clickable) before the
+      // store has ever been saved.
+      async function saveNewStore() {
+        const v = collectFieldValues();
+        if (!v.productName || !v.photo || isNaN(v.priceCents)) {
+          alert('Product name, photo, and price are required first.');
+          return false;
+        }
+        const result = await apiCreateStore({
+          shopName: v.shopName,
+          productName: v.productName,
+          images: [v.photo],
+          priceCents: v.priceCents,
+          quantityTotal: v.quantityTotal,
+          description: v.description,
+          delivery: v.delivery,
+          about: v.about,
+          socialLinks: { instagram: v.instagram, website: v.website },
+          slug: slugInput.value.trim() || v.productName,
+        });
+        manageToken = result.manageToken;
+        history.replaceState(null, '', '/create?manage=' + encodeURIComponent(manageToken));
+        existing = await apiGetStoreByToken(manageToken);
+        applyExistingToForm();
+        return true;
+      }
+
       async function renderPayments() {
-        if (!existing || existing.status !== 'draft') {
-          paymentsFieldset.style.display = 'none';
+        if (existing && existing.status !== 'draft') {
+          paymentsContent.innerHTML = `<p class="hint">Stripe is connected and ready ✓</p>`;
           return;
         }
-        paymentsFieldset.style.display = 'block';
 
         // Stripe's account status is the source of truth for whether this
         // store can accept payments — re-check live whenever there's a
         // connected account that isn't fully verified yet (e.g. the seller
         // just got back from Stripe onboarding). See account-link's GET handler.
-        let chargesEnabled = existing.stripe_charges_enabled;
+        let chargesEnabled = existing ? existing.stripe_charges_enabled : false;
         let checkError = '';
-        if (existing.stripe_account_id && !chargesEnabled) {
+        if (existing && existing.stripe_account_id && !chargesEnabled) {
           try {
             const status = await apiGetAccountStatus(manageToken);
             chargesEnabled = existing.stripe_charges_enabled = status.charges_enabled;
@@ -198,18 +241,18 @@ import Footer from '../components/Footer.astro';
           }
         }
 
-        if (!existing.stripe_account_id) {
+        if (existing && existing.stripe_account_id && chargesEnabled) {
           paymentsContent.innerHTML = `
-            <p class="hint">Connect a Stripe account so you can accept payments for this store, then publish from your dashboard.</p>
-            <button type="button" class="btn-secondary" id="connect-stripe-btn">Connect Stripe</button>`;
-        } else if (!chargesEnabled) {
+            <p class="hint">Stripe is connected and ready ✓</p>
+            <a class="btn-secondary" href="/published?token=${encodeURIComponent(manageToken)}">Continue to dashboard</a>`;
+        } else if (existing && existing.stripe_account_id) {
           paymentsContent.innerHTML = `
             <p class="hint">Stripe account created — finish verification with Stripe to publish. ${checkError}</p>
             <button type="button" class="btn-secondary" id="connect-stripe-btn">Finish Stripe setup</button>`;
         } else {
           paymentsContent.innerHTML = `
-            <p class="hint">Stripe is connected and ready ✓</p>
-            <a class="btn-secondary" href="/published?token=${encodeURIComponent(manageToken)}">Continue to dashboard</a>`;
+            <p class="hint">Connect a Stripe account so you can accept payments for this store.${existing ? '' : ' This saves your details above first if you haven\u2019t yet.'}</p>
+            <button type="button" class="btn-secondary" id="connect-stripe-btn">Connect Stripe</button>`;
         }
 
         const connectBtn = document.getElementById('connect-stripe-btn');
@@ -217,8 +260,19 @@ import Footer from '../components/Footer.astro';
           connectBtn.addEventListener('click', async () => {
             const originalLabel = connectBtn.textContent;
             connectBtn.disabled = true;
-            connectBtn.textContent = 'Redirecting to Stripe...';
+            submitBtn.disabled = true;
             try {
+              if (!existing) {
+                connectBtn.textContent = 'Saving store...';
+                const saved = await saveNewStore();
+                if (!saved) {
+                  connectBtn.disabled = false;
+                  submitBtn.disabled = false;
+                  connectBtn.textContent = originalLabel;
+                  return;
+                }
+              }
+              connectBtn.textContent = 'Redirecting to Stripe...';
               if (!existing.stripe_account_id) {
                 await apiConnectAccount(manageToken);
               }
@@ -227,6 +281,7 @@ import Footer from '../components/Footer.astro';
             } catch (err) {
               alert(err.message || 'Could not start Stripe connection.');
               connectBtn.disabled = false;
+              submitBtn.disabled = false;
               connectBtn.textContent = originalLabel;
             }
           });
@@ -242,6 +297,7 @@ import Footer from '../components/Footer.astro';
       productNameInput.addEventListener('input', refreshSlugPreview);
       slugInput.addEventListener('input', refreshSlugPreview);
       refreshSlugPreview();
+
 
       document.getElementById('load-example').addEventListener('click', () => {
         document.getElementById('shopName').value = 'Fen & Clay';
@@ -260,66 +316,36 @@ import Footer from '../components/Footer.astro';
       document.getElementById('store-form').addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const productName = productNameInput.value.trim();
-        const photo = document.getElementById('photo').value.trim();
-        const priceCents = Math.round(parseFloat(document.getElementById('price').value) * 100);
-
-        if (!productName || !photo || isNaN(priceCents)) {
-          alert('Product name, photo, and price are required.');
-          return;
-        }
-
-        const submitBtn = document.getElementById('submit-btn');
         const originalLabel = submitBtn.textContent;
         submitBtn.disabled = true;
         submitBtn.textContent = 'Saving...';
 
-        const shopName = document.getElementById('shopName').value.trim();
-        const quantityTotal = parseInt(document.getElementById('quantity').value, 10) || 1;
-        const description = document.getElementById('description').value.trim();
-        const delivery = document.getElementById('delivery').value.trim();
-        const about = document.getElementById('about').value.trim();
-        const instagram = document.getElementById('instagram').value.trim();
-        const website = document.getElementById('website').value.trim();
-
         try {
           if (existing) {
+            const v = collectFieldValues();
+            if (!v.productName || !v.photo || isNaN(v.priceCents)) {
+              alert('Product name, photo, and price are required.');
+              submitBtn.disabled = false;
+              submitBtn.textContent = originalLabel;
+              return;
+            }
             await apiUpdateStore(manageToken, {
-              shop_name: shopName,
-              product_name: productName,
-              images: [photo],
-              price_cents: priceCents,
-              quantity_total: quantityTotal,
-              description,
-              delivery_info: delivery,
-              about_text: about,
-              social_links: { instagram, website },
+              shop_name: v.shopName,
+              product_name: v.productName,
+              images: [v.photo],
+              price_cents: v.priceCents,
+              quantity_total: v.quantityTotal,
+              description: v.description,
+              delivery_info: v.delivery,
+              about_text: v.about,
+              social_links: { instagram: v.instagram, website: v.website },
             });
             location.href = '/published?token=' + encodeURIComponent(manageToken);
           } else {
-            const result = await apiCreateStore({
-              shopName,
-              productName,
-              images: [photo],
-              priceCents,
-              quantityTotal,
-              description,
-              delivery,
-              about,
-              socialLinks: { instagram, website },
-              slug: slugInput.value.trim() || productName,
-            });
-
-            // Stay on this page instead of redirecting — just switch into
-            // edit mode in place so Connect Stripe appears at the bottom
-            // without a full page load.
-            manageToken = result.manageToken;
-            history.replaceState(null, '', '/create?manage=' + encodeURIComponent(manageToken));
-            existing = await apiGetStoreByToken(manageToken);
-            applyExistingToForm();
+            const saved = await saveNewStore();
             submitBtn.disabled = false;
-            await renderPayments();
-            document.getElementById('payments-fieldset').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (saved) await renderPayments();
+            else submitBtn.textContent = originalLabel;
           }
         } catch (err) {
           alert(err.message || 'Something went wrong saving this store.');
