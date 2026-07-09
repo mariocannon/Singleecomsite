@@ -341,6 +341,26 @@ footer, .site-footer-minimal{ border-top: 1px solid var(--line); padding: 28px 0
   margin-bottom: 28px;
 }
 
+/* how-to-use guide */
+.guide-steps{ list-style:none; margin:0; padding:0; }
+.guide-step{ display:flex; gap:16px; margin-bottom:28px; }
+.guide-step .step-num{
+  flex:none;
+  width:30px; height:30px;
+  border-radius:50%;
+  background: var(--ink);
+  color: var(--paper);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:13px;
+  display:flex; align-items:center; justify-content:center;
+}
+.guide-step .step-body{ flex:1; min-width:0; }
+.guide-step h2{ font-size:17px; margin:2px 0 8px; }
+.guide-step p{ font-size:14.5px; line-height:1.65; margin:0 0 10px; color: var(--muted); }
+.guide-step ul{ margin:0 0 10px; padding-left:20px; }
+.guide-step li{ font-size:14.5px; line-height:1.65; color: var(--muted); margin-bottom:4px; }
+.guide-step code{ font-family:'IBM Plex Mono', monospace; font-size:13px; background: rgba(0,0,0,0.05); padding:1px 5px; border-radius:4px; }
+
 /* modal */
 .modal-overlay{
   position:fixed; inset:0;
