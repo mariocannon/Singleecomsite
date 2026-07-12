@@ -1,6 +1,5 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
-import DevBanner from '../../components/DevBanner.astro';
 import Header from '../../components/Header.astro';
 import Footer from '../../components/Footer.astro';
 import { useCases } from '../../data/use-cases.js';
@@ -15,7 +14,6 @@ export function getStaticPaths() {
 const { useCase } = Astro.props;
 ---
 <BaseLayout title={`ZENZKO for ${useCase.label} — ZENZKO`}>
-  <DevBanner message="MOCKUP" />
   <Header />
 
   <div class="container-narrow form-page legal-page">
