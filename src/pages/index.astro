@@ -131,12 +131,12 @@ const featuredStores = [
         <h2>If it's one thing, it belongs here</h2>
       </div>
       <div class="chips">
-        <span class="chip">Honesty box stands</span>
-        <span class="chip">One-off makers</span>
-        <span class="chip">Small-batch drops</span>
-        <span class="chip">Market stall sellers</span>
-        <span class="chip">Limited prints</span>
-        <span class="chip">Single-item fundraisers</span>
+        <a class="chip" href="/use-cases/honesty-box-stands">Honesty box stands</a>
+        <a class="chip" href="/use-cases/one-off-makers">One-off makers</a>
+        <a class="chip" href="/use-cases/small-batch-drops">Small-batch drops</a>
+        <a class="chip" href="/use-cases/market-stall-sellers">Market stall sellers</a>
+        <a class="chip" href="/use-cases/limited-prints">Limited prints</a>
+        <a class="chip" href="/use-cases/single-item-fundraisers">Single-item fundraisers</a>
       </div>
     </div>
   </section>
@@ -258,7 +258,8 @@ const featuredStores = [
 
   section.uses{ padding: 60px 0 90px; border-top: 1px solid var(--line); }
   .chips{ display:flex; flex-wrap:wrap; gap: 10px; }
-  .chip{ border: 1px solid var(--line); background:#fff; border-radius: 100px; padding: 9px 16px; font-size: 13.5px; }
+  .chip{ border: 1px solid var(--line); background:#fff; border-radius: 100px; padding: 9px 16px; font-size: 13.5px; text-decoration:none; transition: border-color 0.15s ease, color 0.15s ease; }
+  .chip:hover{ border-color: var(--accent); color: var(--accent); }
 
   section.featured{ padding: 70px 0 90px; border-top: 1px solid var(--line); }
   .featured-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
