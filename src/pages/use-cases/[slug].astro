@@ -1,0 +1,47 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import DevBanner from '../../components/DevBanner.astro';
+import Header from '../../components/Header.astro';
+import Footer from '../../components/Footer.astro';
+import { useCases } from '../../data/use-cases.js';
+
+export function getStaticPaths() {
+  return useCases.map((useCase) => ({
+    params: { slug: useCase.slug },
+    props: { useCase },
+  }));
+}
+
+const { useCase } = Astro.props;
+---
+<BaseLayout title={`ZENZKO for ${useCase.label} — ZENZKO`}>
+  <DevBanner message="MOCKUP" />
+  <Header />
+
+  <div class="container-narrow form-page legal-page">
+    <p class="eyebrow">Use case</p>
+    <h1 style="font-size:28px; margin-bottom:20px;">ZENZKO for {useCase.label.toLowerCase()}</h1>
+
+    <p>ZENZKO works well for {useCase.kind} — things like {useCase.examples}. If you're only ever selling one thing at a time, you don't need a full storefront, just a page that takes payment and a link you can share.</p>
+
+    <h2>Setting up your page</h2>
+    <p>The setup is the same no matter what you're selling:</p>
+    <ul>
+      <li><strong>Add your product</strong> — name, a photo, and a price. Everything else is optional.</li>
+      <li><strong>Connect Stripe</strong> — payments go straight to your own account, not through us.</li>
+      <li><strong>Publish and share your link</strong> — drop it anywhere you'd normally point people to buy.</li>
+    </ul>
+    <p>For the full walkthrough, see the <a href="/how-to-use">how to use guide</a>.</p>
+
+    <h2>Why it fits</h2>
+    <ul>
+      {useCase.benefits.map((benefit) => <li>{benefit}</li>)}
+    </ul>
+
+    <div class="form-actions" style="margin-top:8px;">
+      <a class="btn-primary" href="/create">Create your store</a>
+    </div>
+  </div>
+
+  <Footer />
+</BaseLayout>
