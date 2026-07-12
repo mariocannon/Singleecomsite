@@ -1,0 +1,28 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import DevBanner from '../components/DevBanner.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="About us — ZENZKO">
+  <DevBanner message="MOCKUP" />
+  <Header />
+
+  <div class="container-narrow form-page legal-page">
+    <p class="eyebrow">About</p>
+    <h1 style="font-size:28px; margin-bottom:20px;">About ZENZKO</h1>
+
+    <p>ZENZKO exists for people selling one thing — a single product, a small drop, an honesty-box stand — who don't need a full storefront or a dashboard to learn. Add your product, connect your own Stripe account, and get a link you can share the same day.</p>
+
+    <h2>What we believe</h2>
+    <p>Most people selling one item at a time don't need inventory tools, themes, or apps to manage. They need a page that takes payment and a link they can drop in a caption or a group chat. That's the whole product.</p>
+
+    <h2>How we make money</h2>
+    <p>There's no monthly fee. We take a small percentage per sale, so we only make money when a seller does. Sellers can optionally pay a one-time fee to unlock editing after publishing.</p>
+
+    <h2>Who's behind it</h2>
+    <p>ZENZKO is a small, independent project. This page is placeholder text for a working mockup — it'll be filled in with real details as the product develops.</p>
+  </div>
+
+  <Footer />
+</BaseLayout>

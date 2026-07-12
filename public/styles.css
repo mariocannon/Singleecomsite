@@ -325,6 +325,9 @@ footer, .site-footer-minimal{ border-top: 1px solid var(--line); padding: 28px 0
 .footer-links{ display:flex; gap: 18px; flex-wrap:wrap; }
 .footer-links a{ font-size: 13px; text-decoration: none; color: var(--muted); }
 .footer-links a:hover{ color: var(--ink); }
+.footer-social{ display:flex; gap: 14px; align-items:center; }
+.footer-social a{ color: var(--ink); display:flex; }
+.footer-social a:hover{ color: var(--accent); }
 
 /* legal / support page prose */
 .legal-page h2{ font-size: 18px; margin: 28px 0 10px; }
