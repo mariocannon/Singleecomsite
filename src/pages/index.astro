@@ -2,6 +2,7 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import DevBanner from '../components/DevBanner.astro';
 import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
 
 const featuredStores = [
   {
@@ -144,7 +145,7 @@ const featuredStores = [
     <div class="container">
       <div class="section-head">
         <p class="eyebrow">Example stores</p>
-        <h2>Three ways people are using Peg</h2>
+        <h2>Three ways people are using ZENZKO</h2>
       </div>
       <div class="featured-grid">
         {featuredStores.map(store => (
@@ -171,25 +172,14 @@ const featuredStores = [
     <div class="modal" id="case-modal-body"></div>
   </div>
 
-  <footer>
-    <div class="container footer-row">
-      <p>PEG · ONE STORE, ONE PRODUCT</p>
-      <div class="footer-links">
-        <a href="/create">Create your store</a>
-        <a href="/privacy">Privacy policy</a>
-        <a href="/terms">Terms of service</a>
-        <a href="/disputes">Disputes</a>
-        <a href="/report">Report a store</a>
-      </div>
-    </div>
-  </footer>
+  <Footer />
 
   <script is:inline>
     const caseStudies = {
       'kowhai-candles': {
         title: 'Kōwhai Candle Co.',
         body: [
-          'Before Peg, candles moved through word of mouth and a cash tin at the school gate — no way to take an order unless she was standing right there.',
+          'Before ZENZKO, candles moved through word of mouth and a cash tin at the school gate — no way to take an order unless she was standing right there.',
           'She listed one candle, connected Stripe in about five minutes, and swapped her usual "DM me to order" Instagram caption for a direct link to the page.',
           '22 of the first batch of 30 sold within a week, almost all to people she\'d never spoken to before. She\'s restocked wax twice since.'
         ]
@@ -206,7 +196,7 @@ const featuredStores = [
         title: "Bailey's Bakes",
         body: [
           'The honesty-box stand ran on a cash tin for years — mostly reliable, but some weeks it came up short and there was no way to know why.',
-          'A Peg link went up on the stand sign so people could pay by card before picking up their loaf. The cash tin stayed as a backup for anyone without a phone on them.',
+          'A ZENZKO link went up on the stand sign so people could pay by card before picking up their loaf. The cash tin stayed as a backup for anyone without a phone on them.',
           'The loaf now sells out most Fridays before the school run even starts, and coming up short has stopped being something to plan around.'
         ]
       }
