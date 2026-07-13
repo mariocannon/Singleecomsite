@@ -86,7 +86,14 @@ import Footer from '../components/Footer.astro';
       content.innerHTML = `
         <p class="eyebrow">Your store</p>
         <h1 style="font-size:26px; margin-bottom:6px;">${escapeHtml(store.product_name)}</h1>
-        <p style="color:var(--muted); font-size:14px; margin:0 0 28px;">${escapeHtml(store.shop_name || '')}</p>
+        <p style="color:var(--muted); font-size:14px; margin:0 0 20px;">${escapeHtml(store.shop_name || '')}</p>
+
+        ${noticeHtml}
+
+        <div class="form-actions" style="margin-bottom:28px;">
+          <a class="btn-secondary" href="${publicUrl}">View live store</a>
+          ${primaryActionHtml}
+        </div>
 
         <div class="reveal-box public">
           <p class="reveal-label">Public store link — share this</p>
@@ -111,11 +118,7 @@ import Footer from '../components/Footer.astro';
           <p class="hint" id="send-links-status" style="margin-top:8px;"></p>
         </div>
 
-        ${noticeHtml}
-
         <div class="form-actions" style="margin-bottom:24px;">
-          <a class="btn-secondary" href="${publicUrl}">View live store</a>
-          ${primaryActionHtml}
           <span style="flex:1;"></span>
           <button type="button" class="btn-text" id="delete-btn">Delete this store</button>
         </div>
