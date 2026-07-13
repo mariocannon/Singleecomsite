@@ -45,13 +45,10 @@ header.site-header{
   text-decoration:none;
 }
 .brand-mark{
-  width:28px; height:28px;
-  border-radius:50%;
-  background: var(--ink);
-  color: var(--paper);
-  font-family:'IBM Plex Mono', monospace;
-  font-size:11px;
-  display:flex; align-items:center; justify-content:center;
+  height:28px;
+  width:auto;
+  display:block;
+  color: var(--ink);
 }
 .nav-links{ display:flex; align-items:center; gap:18px; }
 .nav-links a{ font-size:14px; text-decoration:none; color: var(--muted); }
