@@ -269,11 +269,13 @@ import Footer from '../components/Footer.astro';
         } else if (existing && existing.stripe_account_id) {
           paymentsContent.innerHTML = `
             <p class="hint">Stripe account created — finish verification with Stripe to publish. ${checkError}</p>
-            <button type="button" class="btn-secondary" id="connect-stripe-btn">Finish Stripe setup</button>`;
+            <button type="button" class="btn-secondary" id="connect-stripe-btn">Finish Stripe setup</button>
+            <p class="hint" style="margin-top:8px;">Didn\u2019t mean to create a new Stripe account? <a href="#" id="connect-existing-link">Sign in and use your existing one</a> instead.</p>`;
         } else {
           paymentsContent.innerHTML = `
             <p class="hint">Connect a Stripe account so you can accept payments for this store.${existing ? '' : ' This saves your details above first if you haven\u2019t yet.'}</p>
-            <button type="button" class="btn-secondary" id="connect-stripe-btn">Connect Stripe</button>`;
+            <button type="button" class="btn-secondary" id="connect-stripe-btn">Connect Stripe</button>
+            <p class="hint" style="margin-top:8px;">Already have a Stripe account? <a href="#" id="connect-existing-link">Sign in and connect it</a> instead of creating a new one.</p>`;
         }
 
         const connectBtn = document.getElementById('connect-stripe-btn');
@@ -301,6 +303,29 @@ import Footer from '../components/Footer.astro';
               connectBtn.disabled = false;
               submitBtn.disabled = false;
               connectBtn.textContent = originalLabel;
+            }
+          });
+        }
+
+        // OAuth path: sign in to a pre-existing Stripe account instead of
+        // creating a new one. connect-oauth's GET callback saves the chosen
+        // account onto this store, then sends the seller back here.
+        const connectExistingLink = document.getElementById('connect-existing-link');
+        if (connectExistingLink) {
+          connectExistingLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const originalLabel = connectExistingLink.textContent;
+            try {
+              if (!existing) {
+                const saved = await saveNewStore();
+                if (!saved) return;
+              }
+              connectExistingLink.textContent = 'Opening Stripe sign-in...';
+              const { url } = await apiConnectExistingAccount(manageToken);
+              location.href = url;
+            } catch (err) {
+              alert(err.message || 'Could not start Stripe connection.');
+              connectExistingLink.textContent = originalLabel;
             }
           });
         }

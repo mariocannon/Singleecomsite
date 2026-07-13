@@ -86,6 +86,13 @@ async function apiCreateAccountLink(manageToken) {
   return callFunction('account-link', { method: 'POST', body: { manage_token: manageToken } });
 }
 
+// Starts Stripe's OAuth flow so a seller can sign in to a Stripe account
+// they already have, instead of connect-account's create-a-new-one flow.
+// Returns { url } for connect.stripe.com/oauth/authorize.
+async function apiConnectExistingAccount(manageToken) {
+  return callFunction('connect-oauth', { method: 'POST', body: { manage_token: manageToken } });
+}
+
 async function apiGetAccountStatus(manageToken) {
   return callFunction('account-link', { method: 'GET', query: { manage_token: manageToken } });
 }
