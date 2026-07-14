@@ -1,0 +1,71 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+<BaseLayout title="Pricing — ZENZKO">
+  <Header />
+
+  <div class="container-narrow form-page legal-page">
+    <p class="eyebrow">Pricing</p>
+    <h1 style="font-size:28px; margin-bottom:20px;">Pricing</h1>
+
+    <p>There's no monthly fee and no cost to create or publish a store. We only make money when you do — fees apply per completed sale.</p>
+
+    <h2>Fees per sale</h2>
+    <table class="fee-table">
+      <tbody>
+        <tr>
+          <td>Stripe processing fee</td>
+          <td>2.65% + NZ$0.30</td>
+        </tr>
+        <tr>
+          <td>ZENZKO fee</td>
+          <td>1%</td>
+        </tr>
+        <tr class="fee-total">
+          <td>Total</td>
+          <td>3.65% + NZ$0.30</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="legal-page-note">The ZENZKO fee is 1% while we're in testing. This rate may change as the product develops — any change will be posted here first.</p>
+
+    <h2>What that looks like</h2>
+    <p>On a NZ$20.00 sale: Stripe takes NZ$0.83 (2.65% + NZ$0.30) and ZENZKO takes NZ$0.20 (1%), so NZ$18.97 lands in your Stripe account.</p>
+
+    <h2>Where the money goes</h2>
+    <p>Payments go straight to your own Stripe account — we never hold your money. The Stripe fee is Stripe's standard New Zealand processing rate for domestic cards; international cards and currency conversion may cost more, per <a href="https://stripe.com/nz/pricing" target="_blank" rel="noopener">Stripe's pricing</a>.</p>
+
+    <h2>Unlocked stores</h2>
+    <p>Published stores are locked by default. A one-time upgrade to unlock editing after publishing is coming soon — sale fees stay the same either way.</p>
+
+    <div class="form-actions" style="margin-top:32px;">
+      <a class="btn-primary" href="/create">Create your store</a>
+    </div>
+  </div>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  .fee-table{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14.5px;
+    margin: 0 0 14px;
+  }
+  .fee-table td{
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .fee-table td:last-child{
+    text-align: right;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13.5px;
+  }
+  .fee-table .fee-total td{
+    border-bottom: none;
+    font-weight: 600;
+  }
+</style>
